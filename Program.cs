@@ -25,11 +25,27 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 // -------------------
+// Redirección automática según rol
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.Events.OnSigningIn = async context =>
+    {
+        var userManager = context.HttpContext.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
+        var user = await userManager.GetUserAsync(context.Principal);
+
+        if (await userManager.IsInRoleAsync(user, "Coordinador"))
+        {
+            // Redirige coordinadores al panel de cursos
+            context.Properties.RedirectUri = "/Coordinador/Cursos";
+        }
+    };
+});
+
+// -------------------
 // Redis (IDistributedCache) - Development vs Production
 // -------------------
 if (builder.Environment.IsDevelopment())
 {
-    // Redis local para pruebas
     builder.Services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = "localhost:6379";
@@ -37,7 +53,6 @@ if (builder.Environment.IsDevelopment())
 }
 else
 {
-    // Redis Cloud en producción
     var redisConn = builder.Configuration["Redis__ConnectionString"];
     if (!string.IsNullOrEmpty(redisConn))
     {
@@ -59,7 +74,6 @@ else
     }
     else
     {
-        // fallback seguro
         builder.Services.AddDistributedMemoryCache();
     }
 }
