@@ -1,0 +1,38 @@
+@model PortalAcademicoApp.Models.Curso
+@{
+    ViewData["Title"] = "Detalle del Curso";
+}
+<h2>@Model.Nombre (@Model.Codigo)</h2>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+        {
+            <div>@e.ErrorMessage</div>
+        }
+    </div>
+}
+
+<div>
+    <p><strong>Créditos:</strong> @Model.Creditos</p>
+    <p><strong>Cupo máximo:</strong> @Model.CupoMaximo</p>
+    <p><strong>Horario:</strong> @Model.HorarioInicio.ToString(@"hh\:mm") - @Model.HorarioFin.ToString(@"hh\:mm")</p>
+</div>
+
+@if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<div>
+    @if (User.Identity.IsAuthenticated)
+    {
+        <form asp-controller="Matriculas" asp-action="Inscribirse" method="post">
+            <input type="hidden" name="cursoId" value="@Model.Id" />
+            <button type="submit" class="btn btn-success">Inscribirse</button>
+        </form>
+    }
+    else
+    {
+        <a class="btn btn-primary" asp-area="" asp-controller="Identity/Account" asp-action="Login">Iniciar sesión para inscribirse</a>
+    }
+</div>
