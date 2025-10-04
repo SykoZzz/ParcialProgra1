@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PortalAcademicoApp.Data;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,15 +23,22 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 // -------------------
-// Redis (IDistributedCache)
+// Redis (IDistributedCache) - configuración robusta
 // -------------------
-// Se prioriza variable de entorno Render, sino se usa Redis Cloud directo
 var redisConn = builder.Configuration["Redis__ConnectionString"] 
                 ?? "redis-15597.c258.us-east-1-4.ec2.redns.redis-cloud.com:15597,password=RDP9OBeM26AjmwKvTBnZp3oVLYxx0Wy4,ssl=True,abortConnect=False";
 
+var redisOptions = ConfigurationOptions.Parse(redisConn);
+redisOptions.AbortOnConnectFail = false;                       // No falla si Redis tarda en conectar
+redisOptions.ConnectTimeout = 10000;                            // 10s
+redisOptions.SyncTimeout = 10000;                               // 10s
+redisOptions.KeepAlive = 60;                                    // Mantener viva la conexión
+redisOptions.ReconnectRetryPolicy = new ExponentialRetry(5000); // Reintento automático
+redisOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls12; // TLS 1.2 obligatorio
+
 builder.Services.AddStackExchangeRedisCache(options =>
 {
-    options.Configuration = redisConn;
+    options.ConfigurationOptions = redisOptions;
 });
 
 // -------------------
