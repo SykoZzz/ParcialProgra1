@@ -1,0 +1,40 @@
+@model IEnumerable<PortalAcademicoApp.Models.Curso>
+@{
+    ViewData["Title"] = "Catálogo de Cursos";
+}
+
+<h2>Catálogo de Cursos</h2>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <input type="text" name="nombre" class="form-control" placeholder="Nombre" />
+    </div>
+    <div class="col-auto">
+        <input type="number" name="creditosMin" class="form-control" placeholder="Créditos min" />
+    </div>
+    <div class="col-auto">
+        <input type="number" name="creditosMax" class="form-control" placeholder="Créditos max" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-primary" type="submit">Filtrar</button>
+    </div>
+</form>
+
+<table class="table table-striped">
+    <thead>
+        <tr><th>Código</th><th>Nombre</th><th>Créditos</th><th>Cupo</th><th>Horario</th><th></th></tr>
+    </thead>
+    <tbody>
+    @foreach(var c in Model)
+    {
+        <tr>
+            <td>@c.Codigo</td>
+            <td>@c.Nombre</td>
+            <td>@c.Creditos</td>
+            <td>@c.CupoMaximo</td>
+            <td>@c.HorarioInicio.ToString(@"hh\:mm") - @c.HorarioFin.ToString(@"hh\:mm")</td>
+            <td><a class="btn btn-sm btn-outline-primary" href="@Url.Action("Details","Cursos", new { id = c.Id })">Ver</a></td>
+        </tr>
+    }
+    </tbody>
+</table>
