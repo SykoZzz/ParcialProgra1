@@ -2,13 +2,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PortalAcademicoApp.Data;
 using StackExchange.Redis;
+using System.Security.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // -------------------
 // Base de datos (SQLite)
 // -------------------
-var conn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=portalacademico.db";
+var conn = builder.Configuration.GetConnectionString("DefaultConnection") 
+           ?? "Data Source=portalacademico.db";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(conn));
 
@@ -23,27 +25,47 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
 // -------------------
-// Redis (IDistributedCache) - configuración robusta
+// Redis (IDistributedCache) - Development vs Production
 // -------------------
-var redisConn = builder.Configuration["Redis__ConnectionString"] 
-                ?? "redis-15597.c258.us-east-1-4.ec2.redns.redis-cloud.com:15597,password=RDP9OBeM26AjmwKvTBnZp3oVLYxx0Wy4,ssl=True,abortConnect=False";
-
-var redisOptions = ConfigurationOptions.Parse(redisConn);
-redisOptions.AbortOnConnectFail = false;                       // No falla si Redis tarda en conectar
-redisOptions.ConnectTimeout = 10000;                            // 10s
-redisOptions.SyncTimeout = 10000;                               // 10s
-redisOptions.KeepAlive = 60;                                    // Mantener viva la conexión
-redisOptions.ReconnectRetryPolicy = new ExponentialRetry(5000); // Reintento automático
-redisOptions.SslProtocols = System.Security.Authentication.SslProtocols.Tls12; // TLS 1.2 obligatorio
-
-builder.Services.AddStackExchangeRedisCache(options =>
+if (builder.Environment.IsDevelopment())
 {
-    options.ConfigurationOptions = redisOptions;
-});
+    // Redis local para pruebas
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = "localhost:6379";
+    });
+}
+else
+{
+    // Redis Cloud en producción
+    var redisConn = builder.Configuration["Redis__ConnectionString"];
+    if (!string.IsNullOrEmpty(redisConn))
+    {
+        var redisOptions = ConfigurationOptions.Parse(redisConn);
+        redisOptions.AbortOnConnectFail = false;
+        redisOptions.ConnectTimeout = 10000;
+        redisOptions.SyncTimeout = 10000;
+        redisOptions.KeepAlive = 60;
+        redisOptions.ReconnectRetryPolicy = new ExponentialRetry(5000);
+        redisOptions.Ssl = true;
+        redisOptions.User = "default";            
+        redisOptions.Password = "RDP9OBeM26AjmwKvTBnZp3oVLYxx0Wy4"; 
+        redisOptions.SslProtocols = SslProtocols.Tls12;
+
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.ConfigurationOptions = redisOptions;
+        });
+    }
+    else
+    {
+        // fallback seguro
+        builder.Services.AddDistributedMemoryCache();
+    }
+}
 
 // -------------------
-// Session (usa Redis si está configurado)
-// -------------------
+// Session (Redis o memoria)
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromMinutes(30);
@@ -51,6 +73,7 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// -------------------
 // HttpContextAccessor (para _Layout y sesión)
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllersWithViews();
@@ -59,7 +82,6 @@ var app = builder.Build();
 
 // -------------------
 // Migraciones + seed
-// -------------------
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -70,7 +92,6 @@ using (var scope = app.Services.CreateScope())
 
 // -------------------
 // Middleware
-// -------------------
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -80,13 +101,12 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession(); // antes de auth
+app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
 
 // -------------------
 // Map routes
-// -------------------
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
@@ -94,7 +114,6 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 // -------------------
-// Puerto dinámico Render
-// -------------------
+// Puerto dinámico Render / localhost
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Run($"http://0.0.0.0:{port}");
