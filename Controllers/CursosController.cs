@@ -64,7 +64,8 @@ namespace PortalAcademicoApp.Controllers
         {
             var curso = await _context.Cursos.FindAsync(id);
             if (curso == null) return NotFound();
-            // Validacion server-side simple (por seguridad)
+            HttpContext.Session.SetString("LastVisitedCourseId", curso.Id.ToString());
+            HttpContext.Session.SetString("LastVisitedCourseName", curso.Nombre);
             if (curso.Creditos <= 0) ModelState.AddModelError("", "Créditos inválidos (<=0).");
             if (curso.HorarioInicio >= curso.HorarioFin) ModelState.AddModelError("", "Horario Inicio debe ser anterior al Horario Fin.");
 

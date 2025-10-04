@@ -1,4 +1,10 @@
-﻿<!DOCTYPE html>
+﻿@inject IHttpContextAccessor HttpContextAccessor
+@{
+    var lastId = HttpContextAccessor.HttpContext.Session.GetString("LastVisitedCourseId");
+    var lastName = HttpContextAccessor.HttpContext.Session.GetString("LastVisitedCourseName");
+}
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -14,7 +20,8 @@
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
             <div class="container-fluid">
                 <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">PortalAcademicoApp</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
+                        aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -27,6 +34,17 @@
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
                         </li>
                     </ul>
+
+                    <!-- 🔹 Enlace al último curso visitado -->
+                    <div class="ms-auto">
+                        @if (!string.IsNullOrEmpty(lastId))
+                        {
+                            <a class="nav-link text-primary" href="@Url.Action("Details","Cursos", new { id = lastId })">
+                                Volver al curso: @lastName
+                            </a>
+                        }
+                    </div>
+
                     <partial name="_LoginPartial" />
                 </div>
             </div>
