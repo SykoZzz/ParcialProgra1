@@ -1,0 +1,33 @@
+@model IEnumerable<PortalAcademicoApp.Models.Matricula>
+@{
+    ViewData["Title"] = "Matrículas por curso";
+    var curso = ViewBag.Curso as PortalAcademicoApp.Models.Curso;
+}
+<h2>Matrículas - @curso?.Nombre</h2>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<table class="table">
+    <thead><tr><th>Id</th><th>UsuarioId</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+    <tbody>
+    @foreach(var m in Model)
+    {
+        <tr>
+            <td>@m.Id</td>
+            <td>@m.UsuarioId</td>
+            <td>@m.FechaRegistro.ToLocalTime()</td>
+            <td>@m.Estado</td>
+            <td>
+                <form method="post" asp-action="Confirmar" style="display:inline">
+                    <input type="hidden" name="id" value="@m.Id" />
+                    <button class="btn btn-sm btn-success" type="submit">Confirmar</button>
+                </form>
+                <form method="post" asp-action="Cancelar" style="display:inline">
+                    <input type="hidden" name="id" value="@m.Id" />
+                    <button class="btn btn-sm btn-danger" type="submit">Cancelar</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

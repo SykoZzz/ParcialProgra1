@@ -1,0 +1,32 @@
+@model IEnumerable<PortalAcademicoApp.Models.Curso>
+@{
+    ViewData["Title"] = "Panel Coordinador - Cursos";
+}
+<h2>Panel Coordinador - Cursos</h2>
+
+@if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+
+<a class="btn btn-primary mb-3" asp-action="Create">Crear nuevo curso</a>
+
+<table class="table table-striped">
+    <thead><tr><th>Código</th><th>Nombre</th><th>Créditos</th><th>Cupo</th><th>Activo</th><th></th></tr></thead>
+    <tbody>
+    @foreach(var c in Model)
+    {
+        <tr>
+            <td>@c.Codigo</td>
+            <td>@c.Nombre</td>
+            <td>@c.Creditos</td>
+            <td>@c.CupoMaximo</td>
+            <td>@c.Activo</td>
+            <td>
+                <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@c.Id">Editar</a>
+                <form method="post" asp-action="Desactivar" asp-route-id="@c.Id" style="display:inline">
+                    <button class="btn btn-sm btn-warning" type="submit">Desactivar</button>
+                </form>
+                <a class="btn btn-sm btn-info" asp-action="Matriculas" asp-route-cursoId="@c.Id">Ver matrículas</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
