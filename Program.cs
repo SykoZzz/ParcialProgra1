@@ -4,7 +4,7 @@ using PortalAcademicoApp.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DB - SQLite por defecto (development)
+// DB
 var conn = builder.Configuration.GetConnectionString("DefaultConnection") ?? "Data Source=portalacademico.db";
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(conn));
@@ -17,15 +17,26 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options =>
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>();
 
-// Redis config will be added in feature/sesion-redis (for now we still register session in that branch)
+// Redis (IDistributedCache)
+var redisConn = builder.Configuration["Redis:ConnectionString"] ?? builder.Configuration["Redis__ConnectionString"] ?? "localhost:6379";
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConn;
+});
 
-// HttpContextAccessor for layout session usage
+// Session (usa Redis si AddStackExchangeRedisCache está configurado)
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 builder.Services.AddHttpContextAccessor();
-
 builder.Services.AddControllersWithViews();
 var app = builder.Build();
 
-// Aplicar migraciones y seed
+// apply migrations + seed
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -34,21 +45,14 @@ using (var scope = app.Services.CreateScope())
     await SeedData.EnsureSeedDataAsync(services);
 }
 
-if (!app.Environment.IsDevelopment())
-{
-    app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
-}
+if (!app.Environment.IsDevelopment()) { app.UseExceptionHandler("/Home/Error"); app.UseHsts(); }
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-
+app.UseSession(); // importante: session viene antes de auth si usas session-based auth
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapControllerRoute(name: "default", pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
-
 app.Run();
